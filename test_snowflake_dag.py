@@ -79,6 +79,9 @@ node_affinity={
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
+    # start_date defines when a task starts -- important!
+    # Be careful with this as if the time is set before now, Airflow will attempt to "catch up"
+    # by default, by running the task many times; see https://airflow.apache.org/scheduler.html
     'start_date': datetime.utcnow(),
     'email': ['airflow@example.com'],
     'email_on_failure': False,
@@ -88,7 +91,12 @@ default_args = {
 }
 
 dag = DAG(
-    'test_snowflake_dl_v5', default_args=default_args, schedule_interval=timedelta(minutes=10)
+    # The DAG ID: try to version this as this is how the metadata database tracks it
+    'test_snowflake_dl_v5', 
+    default_args=default_args,
+    # Can be defined as an interval or cron; see documentation
+    # Important, as this defines how often the task is run
+    schedule_interval=timedelta(minutes=10)
 )
 
 # This is an example task container (using a generic ubuntu image) that pulls a SELECT 20 of data  
