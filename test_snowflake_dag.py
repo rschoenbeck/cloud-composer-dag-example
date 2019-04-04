@@ -101,7 +101,10 @@ dag = DAG(
 
 # This is an example task container (using a generic ubuntu image) that pulls a SELECT 20 of data  
 # from the loan table from Snowflake using snowsql, and then writes the result to the persistent disk.
-snowflake_dl = KubernetesPodOperator(namespace='default',
+snowflake_dl = KubernetesPodOperator(
+              # I suggest using the "operator" namespace in our kube cluster for running the KubernetesPodOperator to keep things organized,
+              # since the "default" namespace is taken up by the other airflow pods
+              namespace='operator',
               # Image pull policy: IfNotPresent uses images if already presnet, otherwise "Always" will always pull a new Docker image
 							image_pull_policy='Always',
                           # This currently points to a public DockerHub image -- need to add private repo
@@ -131,7 +134,7 @@ snowflake_dl = KubernetesPodOperator(namespace='default',
 # This is a follow-up task that uses a python container to load the data from the persistent disk
 # used in the previous task, loads the data in pandas, and then sums the "price" column of the loan 
 # data and prints it
-test_print = KubernetesPodOperator(namespace='default',
+test_print = KubernetesPodOperator(namespace='operator',
 							image_pull_policy='Always',
                           	image="rschoenbeck/test-python:latest",
                           	cmds=["python","test_script.py"],
