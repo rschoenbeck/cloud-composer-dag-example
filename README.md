@@ -7,7 +7,7 @@ The code depends on the existence of the indicated persistent disk and secret in
 ### DAG definition file
 test_snowflake_dag.py contains the actual DAG definition used by Airflow. This should be put into the DAGs folder in Cloud Composer.
 
-There is also a version of this DAG, test_snowflake_dag_libs.py, which uses the common configuration libraries (not included in this repo) to set secrets and other configuration. This is the recommended method, so that configuration details are not repeated across DAGs.
+There is also a version of this DAG, test_snowflake_dag_libs.py, which uses the common configuration libraries (not included in this repo) to set secrets and other configuration. This is the recommended method, so that configuration details are not repeated across DAGs. See the [Kiva DAGs repo](https://github.com/kiva/airflow-dags/) for these.
 
 ### docker-snowflake
 This contains the docker image that pulls the data from Snowflake using snowsql.
