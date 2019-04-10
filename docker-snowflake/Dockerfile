@@ -1,6 +1,5 @@
 FROM ubuntu:18.04
 
-COPY ./query_file.sql /snow/query_file.sql
 WORKDIR /snow
 
 # SnowSQL install destination, using root profile
@@ -18,8 +17,8 @@ RUN /snow/snowsql-1.1.76-linux_x86_64.bash
 
 # Set SnowSQL to be executable, create "files" dir
 RUN chmod +x /snow/snowsql
+# /files is the directory we will write output to, and is the volume
+# mount directory used by the DAG to transfer data between DAG nodes
 RUN mkdir /files
 
-# May not be needed running in Cloud Composer due to the DAG specifying the commands
-ENTRYPOINT ["/snow/snowsql","-f","query_file.sql","-o","output_file=/files/data.csv","-o","quiet=true","-o","output_format=csv","-o","friendly=false"]
-
+# Entrypoint not be needed running in Cloud Composer due to the DAG specifying the commands

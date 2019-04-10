@@ -1,31 +1,29 @@
+# This file does the same thing as test_snowflake_dag.py, but uses common DAG libraries for configuration
+# Note that the libraries aren't part of this repo. See https://github.com/kiva/airflow-dags
+
 # Basic airflow and utility imports
 from datetime import datetime, timedelta
 from os import environ
 from airflow import DAG
 from airflow.operators.dummy_operator import DummyOperator
 # Kubernetes airflow components
-from airflow.contrib.operators.kubernetes_pod_operator import KubernetesPodOperator, Volume, VolumeMount
-from airflow.contrib.kubernetes import secret, pod
+from airflow.contrib.operators.kubernetes_pod_operator import KubernetesPodOperator
+from airflow.contrib.kubernetes import pod
+# Custom libraries
+from dag_libs.secrets import AFSecret
+from dag_libs.volumes import AFVolume
+from dag_libs.affinities import AFAffinity
 
 # Secrets
 # ------------------
 # There is a secret in the Cloud Composer kubernetes cluster called "ml-service-secret" which contains the following environment variables
 # These can be used to connect to Snowflake using snowsql or similar methods
-snowflake_secret_names = ['SNOWSQL_USER','SNOWSQL_PWD','SNOWSQL_ACCOUNT','SNOWSQL_DATABASE','SNOWSQL_HOST','SNOWSQL_WAREHOUSE']
-snowflake_secret_list = []
 
 # This creates a list of secrets that can be passed to the KubernetesPodOperator
 # In this case we use the deploy_type 'env' so that the secrets are injected as environment variables into
 # the container run by KubernetesPodOperator
-for s in snowflake_secret_names:
-	snowflake_secret_list.append(secret.Secret(
-	    deploy_type='env',
-      # deploy_target indicates the enviro var name when deploy_type = 'env'
-	    deploy_target=s,
-      # 'key' refers to the key in the secrets file
-	    key=s,
-      # This should be the name of the kubernetes secret from which the info is loaded.
-	    secret='ml-service-secret'))
+snowflake_secrets = AFSecret('snowflake')
+snowflake_secret_list = snowflake_secrets.get_secrets()
 
 # Volume mount example
 # -----------------------
@@ -34,38 +32,18 @@ for s in snowflake_secret_names:
 # tasks in Airflow/Cloud Composer.
 # The mount_path is the directory that will be mounted in running containers.
 # Your containers will be able to read and write to this path in order to move files between tasks + containers.
-volume_mount = VolumeMount('pv-airflow',
-                           mount_path='/files',
-                           sub_path=None,
-                           read_only=False)
-volume_config= {
-    'persistentVolumeClaim':
-    {
-        'claimName': 'pv-claim-airflow'
-    }
-}
-volume = Volume(name='pv-airflow', configs=volume_config) # The name here should match the volume mount.
+airflow_volume = AFVolume('persistent_disk')
+volume = airflow_volume.get_volume()
+volume_mount = airflow_volume.get_volume_mount()
 
 # Node affinity
 # ----------------
 # You can optionally set a node affinity to run a task in a different node pool in kubernetes
 # than the one used by Google Cloud Composer.
 # I've set aside an auto-scaling node pool of higher-memory instances, called "airflow-dev-working", for machine learning
-node_affinity={
-        'nodeAffinity': {
-            'requiredDuringSchedulingIgnoredDuringExecution': {
-                'nodeSelectorTerms': [{
-                    'matchExpressions': [{
-                        'key': 'cloud.google.com/gke-nodepool',
-                        'operator': 'In',
-                        'values': [
-                            'airflow-dev-working',
-                        ]
-                    }]
-                }]
-            }
-        }
-}
+# It adds pods in the 'operator' namespace of the cluster -- thus the name
+airflow_affinity = AFAffinity('operator')
+node_affinity = airflow_affinity.get_affinity()
 
 
 # DAG definitions
@@ -93,7 +71,7 @@ default_args = {
 
 dag = DAG(
     # The DAG ID: try to version this as this is how the metadata database tracks it
-    'test_snowflake_dl', 
+    'test_snowflake_dl_libs', 
     default_args=default_args,
     # Can be defined as an interval or cron; see documentation
     # Important, as this defines how often the task is run
