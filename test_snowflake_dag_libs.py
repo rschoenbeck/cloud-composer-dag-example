@@ -95,8 +95,12 @@ snowflake_dl = KubernetesPodOperator(
 							image_pull_policy='Always',
                           # This pulls from the Google Container Registry attached to the same project as Cloud Composer
                           # If pulling from a different private registry, we need to add image pull secrets for the credentials (see documentation)
+                          #
+                          # The "snowsql-base" image is just snowsql running on Ubuntu, and can be used to download the results of any single query from Snowflake
+                          # and save it to a file (in the `/files` directory, to which the persistent disk is mounted, which will pass along to the next task).
                           image="gcr.io/kiva-machine-learning/snowsql-base:latest",
-                          # Specify the command run in the container
+                          # Below is the argument where you specify the command to run in the container.
+                          # In the CMD invocation for the container, the `sql_query` variable contains the query string (defined above).
                           cmds=["/snow/snowsql","-q",sql_query,"-o","output_file=/files/" + sql_output_file,"-o","quiet=true","-o","output_format=csv","-o","friendly=false"],
                           # Task name and ID
                           name="snowflake-dl",
