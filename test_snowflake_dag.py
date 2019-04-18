@@ -104,7 +104,7 @@ dag = DAG(
 )
 
 # These variables, a query and an output file, will be passed to the invocation of snowsql in the container
-sql_query = "\"select * from loan limit 20;\""
+sql_query = "select * from loan limit 20;"
 sql_output_file = "data.csv"
 
 # This is an example task container (using a generic ubuntu image) that pulls a SELECT 20 of data  
@@ -123,7 +123,8 @@ snowflake_dl = KubernetesPodOperator(
                           image="gcr.io/kiva-machine-learning/snowsql-base:latest",
                           # Below is the argument where you specify the command to run in the container.
                           # In the CMD invocation for the container, the `sql_query` variable contains the query string (defined above).
-                          cmds=["/snow/snowsql","-q",sql_query,"-o","output_file=/files/" + sql_output_file,"-o","quiet=true","-o","output_format=csv","-o","friendly=false"],
+                          cmds=["/snow/snowsql","-q",sql_query,"-o","output_file=/files/" + sql_output_file,"-o","quiet=true","-o","output_format=csv",
+                                "-o","friendly=false","-o","exit_on_error=false"],
                           # Task name and ID
                           name="snowflake-dl",
                           task_id="snowflake-dl-task",
